@@ -50,63 +50,41 @@ def logout():
 @app.route('/stream')
 def stream():
     try:
-        # Test 1: Verifica se l'URL è presente
-        url = request.args.get('url')
+        # Decodifica e verifica l'URL
+        url = unquote(request.args.get('url', ''))
         if not url:
-            return {'error': 'Missing URL', 'test': 'failed_at_1'}, 400
+            return {'error': 'URL mancante'}, 400
 
-        # Test 2: Verifica parsing URL
-        try:
-            parsed_url = urlparse(url)
-            host = parsed_url.netloc
-        except Exception as e:
-            return {'error': f'URL parsing failed: {str(e)}', 'test': 'failed_at_2', 'url': url}, 400
-
-        # Test 3: Verifica domini consentiti
+        # Verifica i domini consentiti
         allowed_hosts = ['vixcloud.co', 'vixsrc.to']
+        host = urlparse(url).netloc
         if not any(allowed in host for allowed in allowed_hosts):
-            return {'error': 'Domain not allowed', 'test': 'failed_at_3', 'host': host}, 403
+            return {'error': 'Dominio non consentito'}, 403
 
-        # Test 4: Verifica connettività al dominio target
-        try:
-            test_conn = requests.head(f"{parsed_url.scheme}://{parsed_url.netloc}", timeout=5)
-            if test_conn.status_code >= 400:
-                return {
-                    'error': 'Target domain not reachable',
-                    'test': 'failed_at_4',
-                    'status_code': test_conn.status_code
-                }, 502
-        except requests.exceptions.RequestException as e:
-            return {
-                'error': f'Connection test failed: {str(e)}',
-                'test': 'failed_at_4',
-                'host': parsed_url.netloc
-            }, 502
+        # Configura gli header per evitare blocchi
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Referer': 'https://vixcloud.co/',
+            'Origin': 'https://vixcloud.co'
+        }
 
-        # Test 5: Prova il reindirizzamento con logging
-        redirect_url = url
-        print(f"Attempting redirect to: {redirect_url}")  # Appare nei log di Render
-        
-        response = redirect(redirect_url, code=302)
-        
-        # Aggiungi header diagnostici
-        response.headers['X-Debug-Original-URL'] = url
-        response.headers['X-Debug-Parsed-Host'] = host
-        response.headers['Access-Control-Expose-Headers'] = '*'
-        
-        return response
+        # Effettua la richiesta al server remoto
+        remote_response = requests.get(url, headers=headers, stream=True, timeout=10)
 
+        # Restituisci il contenuto come stream
+        return Response(
+            remote_response.iter_content(chunk_size=8192),
+            content_type=remote_response.headers.get('Content-Type', 'application/vnd.apple.mpegurl'),
+            headers={
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'no-cache'
+            }
+        )
+
+    except requests.exceptions.RequestException as e:
+        return {'error': f'Errore di connessione: {str(e)}'}, 502
     except Exception as e:
-        # Log completo dell'errore
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"Full error trace:\n{error_trace}")  # Appare nei log di Render
-        
-        return {
-            'error': str(e),
-            'trace': error_trace,
-            'test': 'failed_at_exception'
-        }, 500
+        return {'error': f'Errore del server: {str(e)}'}, 500
 
 @app.route('/proxy')
 def proxy():
