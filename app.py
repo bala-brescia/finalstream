@@ -47,23 +47,31 @@ def logout():
     return redirect(url_for('login'))
 
 
+from urllib.parse import unquote
+
 @app.route('/stream')
 def stream():
     try:
-        url = request.args.get('url')
+        url = unquote(request.args.get('url', ''))  # Decodifica l'URL
         if not url:
-            return 'Missing URL', 400
+            return {'error': 'Missing URL'}, 400
 
+        # Verifica dominio consentito
         allowed_hosts = ['vixcloud.co', 'vixsrc.to']
         parsed_url = urlparse(url)
-        host = parsed_url.netloc
-        
-        if not any(allowed in host for allowed in allowed_hosts):
-            return 'Blocked', 403
+        if not any(allowed in parsed_url.netloc for allowed in allowed_hosts):
+            return {'error': 'Domain not allowed'}, 403
 
-        return redirect(url, code=302)
+        # Costruisci la risposta di reindirizzamento correttamente
+        response = redirect(url, code=302)
+        
+        # Aggiungi header necessari
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Content-Type'] = 'application/json'
+        return response
+        
     except Exception as e:
-        return f'Error: {str(e)}', 500
+        return {'error': str(e)}, 500
 
 @app.route('/proxy')
 def proxy():
