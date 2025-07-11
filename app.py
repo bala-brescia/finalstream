@@ -61,7 +61,15 @@ def stream():
 @app.route('/stream')
 def stream():
     url = request.args.get('url')
-    return render_template("redirect.html", video_url=url)
+    if not url:
+        return 'Missing URL', 400
+
+    allowed_hosts = ['vixcloud.co', 'vixsrc.to']
+    host = urlparse(url).netloc
+    if not any(allowed in host for allowed in allowed_hosts):
+        return 'Blocked', 403
+
+    return redirect(url, code=302)
 
 @app.route('/proxy_stream')
 def proxy_stream():
