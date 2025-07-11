@@ -47,31 +47,66 @@ def logout():
     return redirect(url_for('login'))
 
 
-from urllib.parse import unquote
-
 @app.route('/stream')
 def stream():
     try:
-        url = unquote(request.args.get('url', ''))  # Decodifica l'URL
+        # Test 1: Verifica se l'URL è presente
+        url = request.args.get('url')
         if not url:
-            return {'error': 'Missing URL'}, 400
+            return {'error': 'Missing URL', 'test': 'failed_at_1'}, 400
 
-        # Verifica dominio consentito
+        # Test 2: Verifica parsing URL
+        try:
+            parsed_url = urlparse(url)
+            host = parsed_url.netloc
+        except Exception as e:
+            return {'error': f'URL parsing failed: {str(e)}', 'test': 'failed_at_2', 'url': url}, 400
+
+        # Test 3: Verifica domini consentiti
         allowed_hosts = ['vixcloud.co', 'vixsrc.to']
-        parsed_url = urlparse(url)
-        if not any(allowed in parsed_url.netloc for allowed in allowed_hosts):
-            return {'error': 'Domain not allowed'}, 403
+        if not any(allowed in host for allowed in allowed_hosts):
+            return {'error': 'Domain not allowed', 'test': 'failed_at_3', 'host': host}, 403
 
-        # Costruisci la risposta di reindirizzamento correttamente
-        response = redirect(url, code=302)
+        # Test 4: Verifica connettività al dominio target
+        try:
+            test_conn = requests.head(f"{parsed_url.scheme}://{parsed_url.netloc}", timeout=5)
+            if test_conn.status_code >= 400:
+                return {
+                    'error': 'Target domain not reachable',
+                    'test': 'failed_at_4',
+                    'status_code': test_conn.status_code
+                }, 502
+        except requests.exceptions.RequestException as e:
+            return {
+                'error': f'Connection test failed: {str(e)}',
+                'test': 'failed_at_4',
+                'host': parsed_url.netloc
+            }, 502
+
+        # Test 5: Prova il reindirizzamento con logging
+        redirect_url = url
+        print(f"Attempting redirect to: {redirect_url}")  # Appare nei log di Render
         
-        # Aggiungi header necessari
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Content-Type'] = 'application/json'
+        response = redirect(redirect_url, code=302)
+        
+        # Aggiungi header diagnostici
+        response.headers['X-Debug-Original-URL'] = url
+        response.headers['X-Debug-Parsed-Host'] = host
+        response.headers['Access-Control-Expose-Headers'] = '*'
+        
         return response
-        
+
     except Exception as e:
-        return {'error': str(e)}, 500
+        # Log completo dell'errore
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Full error trace:\n{error_trace}")  # Appare nei log di Render
+        
+        return {
+            'error': str(e),
+            'trace': error_trace,
+            'test': 'failed_at_exception'
+        }, 500
 
 @app.route('/proxy')
 def proxy():
