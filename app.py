@@ -44,7 +44,7 @@ def logout():
     session.pop('logged_in', None)
     return redirect(url_for('login'))
 
-"""
+
 @app.route('/stream')
 def stream():
     url = request.args.get('url')
@@ -57,29 +57,6 @@ def stream():
         return 'Blocked', 403
 
     return redirect(url, code=302)
-"""
-@app.route('/stream')
-def stream():
-    url = request.args.get('url')
-    if not url:
-        return 'Missing URL', 400
-
-    headers = {
-        'Referer': 'https://finalstream.onrender.com', 
-        'User-Agent': 'Mozilla/5.0'
-    }
-
-    r = requests.get(url, headers=headers, stream=True)
-    content_type = r.headers.get('Content-Type', 'application/octet-stream')
-
-    return Response(
-        r.iter_content(chunk_size=1024),
-        content_type=content_type,
-        headers={
-            'Access-Control-Allow-Origin': '*'
-        },
-        status=r.status_code
-    )
 
 @app.route('/proxy_stream')
 def proxy_stream():
