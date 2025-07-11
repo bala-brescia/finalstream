@@ -61,17 +61,9 @@ def stream():
 @app.route('/proxy')
 def proxy():
     url = request.args.get('url')
-    headers = {'Referer': 'https://finalstream.onrender.com', 'User-Agent': 'Mozilla/5.0'}
-    r = requests.get(url, headers=headers, stream=True)
-    print(r.text)
-    return Response(
-        r.iter_content(1024),
-        headers={
-            'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
-            'Access-Control-Allow-Origin': '*'
-        },
-        status=r.status_code
-    )
+    headers = {'Referer': 'https://vixcloud.co', 'Origin': 'https://vixcloud.co'}
+    resp = requests.get(url, headers=headers, stream=True)
+    return Response(resp.iter_content(chunk_size=1024), content_type=resp.headers['Content-Type'])
 
 
 @app.route('/proxy_stream')
