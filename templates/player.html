@@ -144,7 +144,8 @@
             const video = document.getElementById('video');
             if (Hls.isSupported()) {
                 const hls = new Hls();
-                hls.loadSource("/stream?url={{ embed_url }}");
+                //hls.loadSource("/stream?url={{ embed_url }}");
+                hls.loadSource("{{ embed_url }}");
                 hls.attachMedia(video);
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = "{{ embed_url }}";
@@ -190,7 +191,8 @@
                     const streamUrl = data.url;
                     
                     if (Hls.isSupported()) {
-                        hls.loadSource("/stream?url=" + streamUrl);
+                        //hls.loadSource("/stream?url=" + streamUrl);
+                        hls.loadSource(streamUrl);
                         hls.attachMedia(video);
                         window.hlsInstance = hls;
                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {

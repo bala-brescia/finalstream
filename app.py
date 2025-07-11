@@ -44,7 +44,7 @@ def logout():
     session.pop('logged_in', None)
     return redirect(url_for('login'))
 
-
+"""
 @app.route('/stream')
 def stream():
     url = request.args.get('url')
@@ -57,6 +57,11 @@ def stream():
         return 'Blocked', 403
 
     return redirect(url, code=302)
+"""
+@app.route('/stream')
+def stream():
+    url = request.args.get('url')
+    return render_template("redirect.html", video_url=url)
 
 @app.route('/proxy_stream')
 def proxy_stream():
