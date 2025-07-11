@@ -61,15 +61,12 @@ def stream():
 @app.route('/stream')
 def stream():
     url = request.args.get('url')
-    if not url:
-        return 'Missing URL', 400
-
-    allowed_hosts = ['vixcloud.co', 'vixsrc.to']
-    host = urlparse(url).netloc
-    if not any(allowed in host for allowed in allowed_hosts):
-        return 'Blocked', 403
-
-    return redirect(url, code=302)
+    headers = {
+        "Referer": "https://finalstream.onrender.com",
+        "User-Agent": "Mozilla/5.0"
+    }
+    resp = requests.get(url, headers=headers)
+    return Response(resp.content, content_type=resp.headers['Content-Type'])
 
 @app.route('/proxy_stream')
 def proxy_stream():
