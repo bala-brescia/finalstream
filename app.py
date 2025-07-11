@@ -11,6 +11,7 @@ import base64
 from tmdb import get_tmdb_popular_movies,get_tmdb_popular_tvshows, unified_tmdb_search
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 load_dotenv()
 
@@ -19,6 +20,7 @@ TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 ua = UserAgent()
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 GLOBAL_PASSWORD = os.getenv('SITE_PASSWORD')
 
