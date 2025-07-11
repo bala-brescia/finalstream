@@ -47,16 +47,21 @@ def logout():
 
 @app.route('/stream')
 def stream():
-    url = request.args.get('url')
-    if not url:
-        return 'Missing URL', 400
+    try:
+        url = request.args.get('url')
+        if not url:
+            return 'Missing URL', 400
 
-    allowed_hosts = ['vixcloud.co', 'vixsrc.to']
-    host = urlparse(url).netloc
-    if not any(allowed in host for allowed in allowed_hosts):
-        return 'Blocked', 403
+        allowed_hosts = ['vixcloud.co', 'vixsrc.to']
+        parsed_url = urlparse(url)
+        host = parsed_url.netloc
+        
+        if not any(allowed in host for allowed in allowed_hosts):
+            return 'Blocked', 403
 
-    return redirect(url, code=302)
+        return redirect(url, code=302)
+    except Exception as e:
+        return f'Error: {str(e)}', 500
 
 @app.route('/proxy')
 def proxy():
