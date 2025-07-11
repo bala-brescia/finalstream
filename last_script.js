@@ -1,13 +1,13 @@
 
-        window.video = {"id":327853,"name":"Karate Kid: Legends","filename":"Karate.Kid.Legends.2025.1080p.WEB-DL.DDP5.1.H.264-FHC.mkv","size":7244894,"quality":1080,"duration":5644,"views":0,"is_viewable":1,"status":"public","fps":24,"legacy":0,"folder_id":"ccede306-59a1-497f-9257-621a745c405a","created_at_diff":"14 ore fa"};
-        window.streams = [{"name":"Server1","active":true,"url":"https:\/\/vixcloud.co\/playlist\/327853?ub=1"},{"name":"Server2","active":false,"url":"https:\/\/vixcloud.co\/playlist\/327853?ab=1"}];
+        window.video = {"id":325525,"name":"Dragon Trainer","filename":"Dragon.Trainer.2025.iTALiAN.MD.1080p.HDTS.x264-WRS.mkv","size":8821778,"quality":1080,"duration":7045,"views":0,"is_viewable":1,"status":"public","fps":24,"legacy":0,"folder_id":"f9f08ba8-7a6b-4116-9cf9-95fd1db5679a","created_at_diff":"2 settimane fa"};
+        window.streams = [{"name":"Server1","active":false,"url":"https:\/\/vixcloud.co\/playlist\/325525?b=1\u0026ub=1"},{"name":"Server2","active":1,"url":"https:\/\/vixcloud.co\/playlist\/325525?b=1\u0026ab=1"}];
         window.masterPlaylist = {
             params: {
-                'token': '9ed3fa2b5fa3652988c472a5d47170aa',
-                'expires': '1757406826',
+                'token': '617103d8817e82ec1702643dee3d9aec',
+                'expires': '1757441834',
                 'asn': '',
             },
-            url: 'https://vixsrc.to/playlist/327853',
+            url: 'https://vixsrc.to/playlist/325525?b=1',
         }
         window.canPlayFHD = true
     

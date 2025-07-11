@@ -12,7 +12,6 @@ from tmdb import get_tmdb_popular_movies,get_tmdb_popular_tvshows, unified_tmdb_
 from dotenv import load_dotenv
 import os
 
-
 load_dotenv()
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
@@ -20,7 +19,6 @@ TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 ua = UserAgent()
 
 app = Flask(__name__)
-
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 GLOBAL_PASSWORD = os.getenv('SITE_PASSWORD')
 
@@ -47,51 +45,65 @@ def logout():
     return redirect(url_for('login'))
 
 
+from flask import Flask, request, Response
+from urllib.parse import urlparse
+
+app = Flask(__name__)
+
 @app.route('/stream')
 def stream():
-    try:
-        # Decodifica e verifica l'URL
-        url = unquote(request.args.get('url', ''))
-        if not url:
-            return {'error': 'URL mancante'}, 400
-
-        # Verifica i domini consentiti
-        allowed_hosts = ['vixcloud.co', 'vixsrc.to']
-        host = urlparse(url).netloc
-        if not any(allowed in host for allowed in allowed_hosts):
-            return {'error': 'Dominio non consentito'}, 403
-
-        # Configura gli header per evitare blocchi
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'Referer': 'https://vixcloud.co/',
-            'Origin': 'https://vixcloud.co'
-        }
-
-        # Effettua la richiesta al server remoto
-        remote_response = requests.get(url, headers=headers, stream=True, timeout=10)
-
-        # Restituisci il contenuto come stream
-        return Response(
-            remote_response.iter_content(chunk_size=8192),
-            content_type=remote_response.headers.get('Content-Type', 'application/vnd.apple.mpegurl'),
-            headers={
-                'Access-Control-Allow-Origin': '*',
-                'Cache-Control': 'no-cache'
-            }
-        )
-
-    except requests.exceptions.RequestException as e:
-        return {'error': f'Errore di connessione: {str(e)}'}, 502
-    except Exception as e:
-        return {'error': f'Errore del server: {str(e)}'}, 500
-
-@app.route('/proxy')
-def proxy():
     url = request.args.get('url')
-    headers = {'Referer': 'https://vixcloud.co', 'Origin': 'https://vixcloud.co'}
-    resp = requests.get(url, headers=headers, stream=True)
-    return Response(resp.iter_content(chunk_size=1024), content_type=resp.headers['Content-Type'])
+    if not url:
+        return 'Missing URL', 400
+
+    allowed_hosts = ['vixcloud.co', 'vixsrc.to']
+    host = urlparse(url).netloc
+    if not any(allowed in host for allowed in allowed_hosts):
+        return 'Blocked', 403
+
+    import requests
+    response = requests.get(url)
+    if response.status_code != 200:
+        return f"Failed to fetch playlist, status {response.status_code}", 500
+
+    lines = response.text.strip().splitlines()
+
+    new_lines = ['#EXTM3U']
+
+    audio_lines = [line for line in lines if line.startswith('#EXT-X-MEDIA:TYPE=AUDIO') and 'LANGUAGE="ita"' in line]
+    if audio_lines:
+        new_lines.append(audio_lines[0])  
+
+    subtitle_lines = [line for line in lines if line.startswith('#EXT-X-MEDIA:TYPE=SUBTITLES') and 'LANGUAGE="ita"' in line]
+    new_lines.extend(subtitle_lines)  
+
+    video_streams = []
+    for i, line in enumerate(lines):
+        if line.startswith('#EXT-X-STREAM-INF'):
+            res = None
+            for part in line.split(','):
+                if part.strip().startswith('RESOLUTION='):
+                    res_str = part.split('=')[1]
+                    w, h = res_str.split('x')
+                    res = (int(w), int(h))
+                    break
+            if i+1 < len(lines):
+                url_line = lines[i+1]
+                video_streams.append((res, line, url_line))
+
+    video_streams.sort(key=lambda x: x[0][1], reverse=True)
+
+    if video_streams:
+        best_video = video_streams[0]
+        new_lines.append(best_video[1]) 
+        new_lines.append(best_video[2]) 
+
+    headers = {
+        'Content-Type': 'application/vnd.apple.mpegurl',
+        'Access-Control-Allow-Origin': '*'
+    }
+
+    return Response("\n".join(new_lines), headers=headers)
 
 
 @app.route('/proxy_stream')
@@ -298,6 +310,7 @@ def get_stream_url():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, port=8000)
+
 
 

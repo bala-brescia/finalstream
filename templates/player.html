@@ -135,16 +135,20 @@
             </div>
         {% endif %}
 
-        <video id="video" controls autoplay></video>
+        <video id="video" controls></video>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
         if ("{{ type }}" === 'movie') {
             const video = document.getElementById('video');
-            const hls = new Hls();
-            hls.loadSource("/stream?url={{ embed_url }}");
-            hls.attachMedia(video);
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource("/stream?url={{ embed_url }}");
+                hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = "{{ embed_url }}";
+            }
         } else {
             const tmdbId = {{ movie.id }};
             const isTvShow = {{ 'true' if movie.number_of_seasons else 'false' }};
@@ -183,20 +187,14 @@
                         return;
                     }
 
-                    const streamUrl = "/stream?url=" + encodeURIComponent(embedUrl);
-
+                    const streamUrl = data.url;
+                    
                     if (Hls.isSupported()) {
-                    const hls = new Hls();
-                    hls.loadSource(streamUrl);
-                    hls.on(Hls.Events.ERROR, function(event, data) {
-                        if (data.fatal) {
-                        video.src = embedUrl;
-                        video.play().catch(e => console.error("Fallback error:", e));
-                        }
-                    });
-                    hls.attachMedia(video);
+                        hls.loadSource("/stream?url=" + streamUrl);
+                        hls.attachMedia(video);
+                        window.hlsInstance = hls;
                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    video.src = streamUrl;
+                        video.src = streamUrl;
                     }
                 } catch (err) {
                     console.error("Errore nel caricamento dello stream:", err);
