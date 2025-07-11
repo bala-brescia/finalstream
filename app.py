@@ -58,6 +58,22 @@ def stream():
 
     return redirect(url, code=302)
 
+@app.route('/proxy')
+def proxy():
+    url = request.args.get('url')
+    headers = {'Referer': 'https://finalstream.onrender.com', 'User-Agent': 'Mozilla/5.0'}
+    r = requests.get(url, headers=headers, stream=True)
+
+    return Response(
+        r.iter_content(1024),
+        headers={
+            'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
+            'Access-Control-Allow-Origin': '*'
+        },
+        status=r.status_code
+    )
+
+
 @app.route('/proxy_stream')
 def proxy_stream():
     url = request.args.get('url')
