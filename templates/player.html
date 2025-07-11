@@ -135,21 +135,16 @@
             </div>
         {% endif %}
 
-        <video id="video" controls></video>
+        <video id="video" controls autoplay></video>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
         if ("{{ type }}" === 'movie') {
             const video = document.getElementById('video');
-            if (Hls.isSupported()) {
-                const hls = new Hls();
-                //hls.loadSource("/stream?url={{ embed_url }}");
-                hls.loadSource("/proxy?url={{ embed_url }}");
-                hls.attachMedia(video);
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = "{{ embed_url }}";
-            }
+            const hls = new Hls();
+            hls.loadSource("/stream?url={{ embed_url }}");
+            hls.attachMedia(video);
         } else {
             const tmdbId = {{ movie.id }};
             const isTvShow = {{ 'true' if movie.number_of_seasons else 'false' }};
