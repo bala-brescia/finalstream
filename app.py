@@ -63,7 +63,7 @@ def proxy():
     url = request.args.get('url')
     headers = {'Referer': 'https://finalstream.onrender.com', 'User-Agent': 'Mozilla/5.0'}
     r = requests.get(url, headers=headers, stream=True)
-
+    print(r.text)
     return Response(
         r.iter_content(1024),
         headers={
