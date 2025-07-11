@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>FinalStream Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #eee;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 20px;
+      text-align: center;
+    }
+    form.search-form {
+      margin: 15px auto;
+      max-width: 400px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    form.search-form input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1.5px solid #444;
+      background: #222;
+      color: #eee;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    form.search-form input[type="text"]:focus {
+      border-color: #666;
+    }
+    form.search-form button {
+      padding: 8px 16px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      background: #147aff;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    form.search-form button:hover {
+      background: #00337a;
+    }
+    h2.section-title {
+      padding: 0 20px;
+      margin-top: 40px;
+      margin-bottom: 40px;
+      border-bottom: 2px solid #147aff;
+      display: inline-block;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 0 20px 40px;
+    }
+    .card {
+      background: #1f1f1f;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 400px;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: scale(1.05);
+    }
+    .card img {
+      width: 100%;
+      height: 75%;
+      object-fit: cover; 
+    }
+    .card .info {
+      padding: 10px;
+      flex: 1; 
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    } 
+    .card .info h3 {
+      margin: 0 0 5px;
+      font-size: 1.1rem;
+    }
+    .card .info p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" width="200" height="40" role="img" aria-label="FinalStream Logo" style="display: block; margin: 0 auto;">
+    <style>
+      .fs-main { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700; font-size: 32px; fill: #eee; }
+      .fs-accent { fill: #147aff; }
+    </style>
+    <text x="0" y="30" class="fs-main">Final<tspan class="fs-accent">Stream</tspan></text>
+  </svg>
+
+  <p>Guarda i tuoi film preferiti</p>
+</header>
+
+
+  <form class="search-form" method="GET" action="">
+    <input type="text" name="q" placeholder="Cerca film o serie..." value="{{ request.args.get('q', '') }}">
+    <button type="submit">Cerca</button>
+  </form>
+
+{% if query %}
+  <section>
+    <h2 class="section-title">Risultati per "{{ query }}"</h2>
+    <main class="grid">
+      {% for item in results %}
+      <a href="{{ url_for('player') }}?id={{ item.id }}&type={{ item.type }}">
+        <div class="card">
+          <img src="https://image.tmdb.org/t/p/w300{{ item.poster_path }}" alt="{{ item.title }}" />
+          <div class="info">
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.year }} • ⭐ {{ item.vote_average | round(1) }}</p>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </main>
+  </section>
+{% else %}
+  <section>
+    <h2 class="section-title">Film popolari</h2>
+    <main class="grid">
+      {% for movie in movies %}
+      <a href="{{ url_for('player') }}?id={{ movie.id }}&type=movie">
+        <div class="card">
+          <img src="https://image.tmdb.org/t/p/w300{{ movie.poster_path }}" alt="{{ movie.title }}" />
+          <div class="info">
+            <h3>{{ movie.title }}</h3>
+            <p>{{ movie.release_date[:4] }} • ⭐ {{ movie.vote_average | round(1) }}</p>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </main>
+  </section>
+
+  <section>
+    <h2 class="section-title">Serie TV popolari</h2>
+    <main class="grid">
+      {% for tvshow in tvshows %}
+      <a href="{{ url_for('player') }}?id={{ tvshow.id }}&type=tv">
+        <div class="card">
+          <img src="https://image.tmdb.org/t/p/w300{{ tvshow.poster_path }}" alt="{{ tvshow.name }}" />
+          <div class="info">
+            <h3>{{ tvshow.name }}</h3>
+            <p>{{ tvshow.first_air_date[:4] if tvshow.first_air_date else '' }} • ⭐ {{ tvshow.vote_average | round(1) }}</p>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </main>
+  </section>
+{% endif %}
+
+</body>
+</html>

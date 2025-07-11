@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ movie.title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            background-color: #000;
+        }
+        .backdrop {
+            background-image: url("https://image.tmdb.org/t/p/original{{ movie.backdrop_path }}");
+            background-size: cover;
+            background-position: center;
+            height: 50vh;
+            position: relative;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.3));
+        }
+        .container {
+            padding: 20px;
+            max-width: 1000px;
+            margin: -100px auto 0;
+            z-index: 10;
+            position: relative;
+        }
+        .poster {
+            float: left;
+            width: 200px;
+            margin-right: 20px;
+        }
+        .poster img {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .info {
+            overflow: hidden;
+        }
+        .genres span {
+            background: #222;
+            padding: 5px 10px;
+            margin: 5px 5px 0 0;
+            display: inline-block;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        video {
+            width: 100%;
+            margin-top: 2rem;
+            border-radius: 10px;
+        }
+        select {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #eee;
+            border: 1.5px solid #444;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            appearance: none;
+            padding-right: 36px;
+            box-sizing: border-box;
+            background-image: 
+                linear-gradient(45deg, transparent 50%, #888 50%), 
+                linear-gradient(135deg, #888 50%, transparent 50%);
+            background-position:
+                calc(100% - 20px) center, 
+                calc(100% - 15px) center;
+            background-size: 6px 6px;
+            background-repeat: no-repeat;
+        }
+        select:hover, select:focus {
+            border-color: #666;
+            box-shadow: 0 0 5px #666aaaff;
+            outline: none;
+            background-image: 
+                linear-gradient(45deg, transparent 50%, #aaa 50%), 
+                linear-gradient(135deg, #aaa 50%, transparent 50%);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="backdrop">
+        <div class="overlay"></div>
+    </div>
+
+    <div class="container">
+        <div class="poster">
+            <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }}">
+        </div>
+        <div class="info">
+            <h1>{{ movie.title }}</h1>
+            {% if movie.tagline %}
+                <p><em>{{ movie.tagline }}</em></p>
+            {% endif %}
+            <p><strong>Data di uscita:</strong> {{ movie.release_date }}</p>
+            <p><strong>Durata:</strong> {{ movie.runtime }} minuti</p>
+            <div class="genres">
+                {% for genre in movie.genres %}
+                    <span>{{ genre.name }}</span>
+                {% endfor %}
+            </div>
+            <p style="margin-top: 1rem;">{{ movie.overview }}</p>
+            <p><strong>Voto:</strong> ⭐ {{ movie.vote_average | round(1) }} / 10</p>
+        </div>
+
+        {% if movie.number_of_seasons %}
+            <p><strong>Stagioni:</strong> {{ movie.number_of_seasons }} |
+            <strong>Episodi totali:</strong> {{ movie.number_of_episodes }}</p>
+
+            <label for="seasonSelector">Scegli stagione:</label>
+            <select id="seasonSelector">
+                {% for season in movie.seasons %}
+                    {% if season.season_number > 0 %}
+                        <option value="{{ season.season_number }}">Stagione {{ season.season_number }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+
+            <div id="episodeSelectorContainer" style="margin-top: 10px;">
+                <label for="episodeSelector">Scegli episodio:</label>
+                <select id="episodeSelector"></select>
+            </div>
+        {% endif %}
+
+        <video id="video" controls></video>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        if ("{{ type }}" === 'movie') {
+            const video = document.getElementById('video');
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource("/stream?url={{ embed_url }}");
+                hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = "{{ embed_url }}";
+            }
+        } else {
+            const tmdbId = {{ movie.id }};
+            const isTvShow = {{ 'true' if movie.number_of_seasons else 'false' }};
+            const seasonSelector = document.getElementById('seasonSelector');
+            const episodeSelector = document.getElementById('episodeSelector');
+
+            async function loadEpisodes(seasonNumber) {
+                const response = await fetch(`/api/tv/${tmdbId}/season/${seasonNumber}`);
+                const data = await response.json();
+
+                episodeSelector.innerHTML = '';
+                data.episodes
+                    .filter(ep => ep.name && !/^episodio \d+$/i.test(ep.name.trim()))
+                    .forEach(ep => {
+                        const option = document.createElement('option');
+                        option.value = ep.episode_number;
+                        option.text = `Episodio ${ep.episode_number}: ${ep.name}`;
+                        episodeSelector.appendChild(option);
+                    });
+
+                if (data.episodes.length > 0) {
+                    playEpisode(data.episodes[0]);
+                }
+            }
+
+            async function playEpisode(episode) {
+                const video = document.getElementById('video');
+                if (window.hlsInstance) window.hlsInstance.destroy();
+
+                const hls = new Hls();
+                try {
+                    const res = await fetch(`/api/stream_url?tmdb_id=${tmdbId}&season=${episode.season_number}&episode=${episode.episode_number}`);
+                    const data = await res.json();
+                    if (!data.url) {
+                        console.error("Nessun URL ricevuto:", data);
+                        return;
+                    }
+
+                    const streamUrl = data.url;
+                    
+                    if (Hls.isSupported()) {
+                        hls.loadSource("/stream?url=" + streamUrl);
+                        hls.attachMedia(video);
+                        window.hlsInstance = hls;
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = streamUrl;
+                    }
+                } catch (err) {
+                    console.error("Errore nel caricamento dello stream:", err);
+                }
+            }
+
+            if (isTvShow && seasonSelector) {
+                seasonSelector.addEventListener('change', (e) => loadEpisodes(e.target.value));
+                episodeSelector.addEventListener('change', () => {
+                    const selected = episodeSelector.selectedOptions[0];
+                    playEpisode({
+                        season_number: parseInt(seasonSelector.value),
+                        episode_number: parseInt(selected.value),
+                        name: selected.textContent
+                    });
+                });
+
+                loadEpisodes(seasonSelector.value);
+            }
+        }
+    </script>
+</body>
+</html>
