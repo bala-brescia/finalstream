@@ -183,14 +183,20 @@
                         return;
                     }
 
-                    const streamUrl = data.url;
-                    
+                    const streamUrl = "/stream?url=" + encodeURIComponent(embedUrl);
+
                     if (Hls.isSupported()) {
-                        hls.loadSource("/stream?url=" + streamUrl);
-                        hls.attachMedia(video);
-                        window.hlsInstance = hls;
+                    const hls = new Hls();
+                    hls.loadSource(streamUrl);
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        if (data.fatal) {
+                        video.src = embedUrl;
+                        video.play().catch(e => console.error("Fallback error:", e));
+                        }
+                    });
+                    hls.attachMedia(video);
                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                        video.src = streamUrl;
+                    video.src = streamUrl;
                     }
                 } catch (err) {
                     console.error("Errore nel caricamento dello stream:", err);
